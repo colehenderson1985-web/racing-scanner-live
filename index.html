@@ -38,6 +38,17 @@
   @media (max-width: 960px) { main { grid-template-columns: minmax(0, 1fr); } aside { order: -1; } }
   .tracks { display: flex; flex-wrap: wrap; gap: 8px 18px; margin: 0 0 12px; color: var(--muted); font-size: 13px; }
   .tracks b { color: var(--fg); font-weight: 600; }
+  .toolbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 0 0 12px; }
+  .chips { display: flex; gap: 6px; flex-wrap: wrap; }
+  .chip { padding: 3px 10px; border-radius: 999px; border: 1px solid var(--line); background: var(--panel); font-size: 12px; cursor: pointer; }
+  .chip[aria-selected="true"] { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+  .help { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; margin: 0 0 12px; font-size: 13px; line-height: 1.55; max-width: 72ch; }
+  .card.next { border-color: var(--accent); box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 25%, transparent); }
+  .edge-out { opacity: .45; }
+  details > summary { list-style: none; cursor: pointer; }
+  details > summary::-webkit-details-marker { display: none; }
+  details > summary h3::after { content: "▾"; float: right; transition: transform .15s; }
+  details:not([open]) > summary h3::after { transform: rotate(-90deg); }
   .card { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; margin-bottom: 12px; overflow: hidden; }
   .head { display: flex; align-items: baseline; gap: 10px; padding: 9px 12px; cursor: pointer; background: var(--panel-2); flex-wrap: wrap; }
   .head .rn { font: 700 20px/1 var(--display); color: var(--accent); min-width: 2.2em; }
@@ -105,13 +116,26 @@
 <main>
   <section>
     <div class="tracks" id="tracks"></div>
+    <div class="toolbar">
+      <div class="chips" id="chips" role="tablist" aria-label="Filter by track"></div>
+      <button class="small" id="btn-next">Next to jump ↓</button>
+      <button class="small" id="btn-help" aria-expanded="false">How to read this</button>
+    </div>
+    <div class="help" id="help" hidden>
+      <b>Odds (TAB)</b> is the current fixed price. <b>Rated</b> is the scanner's win chance and the price that chance is worth.
+      <b>Edge</b> compares the two: <span class="pos">+15%</span> means the price on offer pays 15% more than the scanner thinks it should.
+      A runner is flagged <span class="badge value">VALUE</span> when the edge clears 15% and the price is between $2.50 and $20 (short favourites and long shots are excluded on purpose).
+      <b>Place</b> is the chance of running top three (top two in fields under 8). The speed map under each race groups runners by expected position early.
+      The model is unvalidated: treat picks as a talking point, not advice.
+    </div>
     <div id="races"></div>
   </section>
   <aside>
     <div class="card">
-      <h3>Scanner picks</h3>
+      <details id="d-picks" open><summary><h3>Scanner picks <span id="n-picks" class="dim"></span></h3></summary>
       <div id="sugs"></div>
-      <h3>My bets (this device only)</h3>
+      </details>
+      <details id="d-bets" open><summary><h3>My bets (this device only)</h3></summary>
       <div class="kv">
         <div class="k">Bankroll</div><div class="v big" id="l-current">–</div>
         <div class="k">Started</div><div class="v" id="l-start">–</div>
@@ -125,6 +149,7 @@
         <span class="hint">Stored in your browser only</span>
       </div>
       <div id="bets"></div>
+      </details>
       <div class="note" id="note"></div>
     </div>
   </aside>
@@ -148,7 +173,8 @@
 <script>
 const SNAPSHOT_URL = 'snapshot.json';
 const POLL_MS = 45000;
-let snap = null, prev = {}, collapsed = new Set();
+let snap = null, prev = {}, collapsed = new Set(), manual = new Set(), track = 'all';
+const EDGE_MIN = 0.15, ODDS_MIN = 2.5, ODDS_MAX = 20;
 const $ = s => document.querySelector(s);
 const fmt$ = v => (v == null ? '–' : (v < 0 ? '-' : '') + '$' + Math.abs(v).toFixed(0));
 const pct = v => (v * 100).toFixed(v < 0.1 ? 1 : 0) + '%';
@@ -221,8 +247,14 @@ function render() {
   $('#tracks').innerHTML = d.meetings.map(m => `<span><b>${m.venue}</b> ${m.condition}${m.rail ? ' · rail ' + m.rail : ''}${m.weather ? ' · ' + m.weather : ''}</span>`).join('');
   $('#note').textContent = d.note || '';
 
-  const cards = d.races.map(race => {
+  const now = Date.now();
+  const upcoming = d.races.filter(r => r.start_time && Date.parse(r.start_time) > now - 120000 && !r.runners.some(x => x.result));
+  const nextKey = upcoming.length ? upcoming[0].key : null;
+  const tracks = [...new Set(d.races.map(r => r.meeting))];
+  $('#chips').innerHTML = ['all', ...tracks].map(tk => `<button class="chip" role="tab" data-track="${tk}" aria-selected="${track === tk}">${tk === 'all' ? 'All tracks' : tk}</button>`).join('');
+  const cards = d.races.filter(r => track === 'all' || r.meeting === track).map(race => {
     const resulted = race.runners.some(r => r.result);
+    if (resulted && !manual.has(race.key)) collapsed.add(race.key);
     const [jl, jc] = jumpLabel(race.start_time, race.status, resulted);
     const rows = race.runners.map(r => {
       const k = race.key + '|' + r.number, p = prev[k];
@@ -233,6 +265,7 @@ function render() {
       const res = r.result ? `<span class="badge res">${r.result}${['st', 'nd', 'rd'][r.result - 1] || 'th'}</span> ` : '';
       const val = r.value && !resulted ? ` <span class="badge value">VALUE</span>` : '';
       const log = !resulted && !r.scratched ? `<button class="small" data-log="${race.key}|${r.number}">Log</button>` : '';
+      const inBand = r.best_odds >= ODDS_MIN && r.best_odds <= ODDS_MAX;
       return `<tr class="${r.scratched ? 'scr' : ''} ${r.value && !resulted ? 'value' : ''}">
         <td class="num">${r.number}</td>
         <td>${res}${r.name}${val}</td>
@@ -241,10 +274,10 @@ function render() {
         <td class="num ${flash}">${r.scratched ? '—' : '$' + (r.best_odds || 0).toFixed(2)}${arrow}${spark(r.spark)}</td>
         <td class="num"><b>${r.scratched ? '' : pct(r.rated_prob)}</b> <span class="dim">$${(r.rated_price || 0).toFixed(2)}</span></td>
         <td class="num dim">${r.scratched ? '' : pct(r.place_prob)}</td>
-        <td class="num ${cls(r.edge)}">${r.scratched ? '' : (r.edge >= 0 ? '+' : '') + (r.edge * 100).toFixed(0) + '%'}</td>
+        <td class="num ${cls(r.edge)} ${inBand ? '' : 'edge-out'}" title="${inBand ? '' : 'Outside the $2.50–$20 band: not bet on'}">${r.scratched ? '' : (r.edge >= 0 ? '+' : '') + (r.edge * 100).toFixed(0) + '%'}</td>
         <td>${log}</td></tr>`;
     }).join('');
-    return `<div class="card ${collapsed.has(race.key) ? 'collapsed' : ''}" data-key="${race.key}">
+    return `<div class="card ${collapsed.has(race.key) ? 'collapsed' : ''} ${race.key === nextKey ? 'next' : ''}" data-key="${race.key}">
       <div class="head" data-toggle="${race.key}">
         <span class="rn">R${race.number}</span>
         <span class="title">${race.meeting}</span>
@@ -258,6 +291,7 @@ function render() {
         <div class="speed">${race.speed_map || ''}</div></div></div>`;
   });
   $('#races').innerHTML = cards.join('') || '<div class="empty">No races in the snapshot yet.</div>';
+  $('#n-picks').textContent = d.suggestions.length ? `(${d.suggestions.length})` : '';
 
   $('#sugs').innerHTML = d.suggestions.length ? d.suggestions.map(s => `<div class="sug">
       <div class="n">${s.runner} <span class="dim">${s.bet_type}</span></div>
@@ -285,9 +319,10 @@ function renderLedger() {
 
 // ---------- interactions ----------
 document.addEventListener('click', e => {
-  const t = e.target.closest('[data-toggle],[data-log],[data-settle],[data-del]');
+  const t = e.target.closest('[data-toggle],[data-log],[data-settle],[data-del],[data-track]');
   if (!t) return;
-  if (t.dataset.toggle) { const k = t.dataset.toggle; collapsed.has(k) ? collapsed.delete(k) : collapsed.add(k); render(); }
+  if (t.dataset.toggle) { const k = t.dataset.toggle; manual.add(k); collapsed.has(k) ? collapsed.delete(k) : collapsed.add(k); render(); }
+  else if (t.dataset.track) { track = t.dataset.track; render(); }
   else if (t.dataset.log) { const [k, n] = t.dataset.log.split('|'); openDlg(k, +n, t.dataset.sug ? JSON.parse(t.dataset.sug) : null); }
   else if (t.dataset.settle) { const [id, st] = t.dataset.settle.split('|'); const b = ledger.bets.find(x => x.id === +id); if (b) { b.status = st; saveLedger(); renderLedger(); } }
   else if (t.dataset.del) { const id = +t.dataset.del; ledger.bets = ledger.bets.filter(x => x.id !== id); saveLedger(); renderLedger(); }
@@ -313,6 +348,9 @@ $('#dlg-form').onsubmit = e => {
     status: 'open', at: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) });
   saveLedger(); renderLedger();
 };
+$('#btn-next').onclick = () => { const el = document.querySelector('.card.next'); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); };
+$('#btn-help').onclick = () => { const h = $('#help'); h.hidden = !h.hidden; $('#btn-help').setAttribute('aria-expanded', String(!h.hidden)); };
+if (window.innerWidth < 960) { $('#d-picks').open = true; $('#d-bets').open = false; }
 $('#btn-bankroll').onclick = () => { const v = +$('#in-bankroll').value; if (v > 0) { ledger.bankroll = v; saveLedger(); $('#in-bankroll').value = ''; renderLedger(); } };
 
 setInterval(() => {
