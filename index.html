@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Cole's Racing Scanner</title>
+<title>Cole's Market Inefficiency Scanner</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
 <style>
@@ -103,18 +103,63 @@
     @keyframes fd { from { background: rgba(179,38,30,.18); } to { background: transparent; } }
   }
   .bf { display: inline-block; margin-left: 6px; padding: 0 4px; border-radius: 3px; font-size: 11px; background: color-mix(in srgb, #f6c242 22%, transparent); }
+
+  [hidden] { display: none !important; }
+  .tabs { display: flex; gap: 4px; padding: 8px 16px 0; border-bottom: 1px solid var(--line); background: var(--bg); position: sticky; top: 49px; z-index: 4; }
+  .tabs button { border: 1px solid var(--line); border-bottom: none; border-radius: 6px 6px 0 0; background: transparent; color: var(--muted); padding: 6px 16px; font: 700 15px/1.2 var(--display); text-transform: uppercase; letter-spacing: .05em; }
+  .tabs button.on { background: var(--panel); color: var(--fg); border-color: var(--accent); }
+  .tabs .cnt { margin-left: 6px; padding: 0 6px; border-radius: 999px; background: var(--value-bg); color: var(--good); font: 600 11px/1.5 var(--body); }
+  #tab-nfl aside { position: sticky; top: 100px; max-height: calc(100vh - 110px); overflow-y: auto; }
+  #tab-nfl aside .card { position: static; }
+  .nhead { display: flex; align-items: center; gap: 10px; padding: 10px 12px; background: var(--panel-2); border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+  .nhead .ttl { font: 700 20px/1 var(--display); text-transform: uppercase; letter-spacing: .03em; }
+  .nhead .sub { color: var(--muted); font-size: 12px; }
+  .nhead .ctl { margin-left: auto; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .chk { display: inline-flex; gap: 5px; align-items: center; font-size: 12px; color: var(--muted); cursor: pointer; }
+  .chk input { width: auto; margin: 0; }
+  input.px { width: 70px; padding: 3px 6px; font-family: var(--mono); text-align: right; }
+  tr.edge td { background: var(--value-bg); }
+  tr.started td { opacity: .45; }
+  .tag { display: inline-block; padding: 1px 6px; border-radius: 3px; font-size: 10px; font-weight: 600; letter-spacing: .04em; vertical-align: middle; }
+  .tag.inj { background: rgba(179,38,30,.14); color: var(--bad); }
+  .tag.lead { background: color-mix(in srgb, var(--accent) 16%, transparent); color: var(--accent); }
+  .tag.fail { background: var(--panel-2); color: var(--muted); border: 1px solid var(--line); }
+  .game { padding: 9px 12px; border-bottom: 1px solid var(--line); }
+  .game:last-child { border-bottom: 0; }
+  .game .gt { display: flex; gap: 10px; align-items: baseline; }
+  .game .gt .when { margin-left: auto; color: var(--muted); font-size: 12px; }
+  .nchips { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 4px; }
+  .nchip { font: 11px/1.6 var(--mono); color: var(--muted); border: 1px solid var(--line); border-radius: 999px; padding: 0 8px; }
+  .nchip.warn { color: var(--accent); border-color: var(--accent); }
+  .flag { display: grid; grid-template-columns: 1fr; gap: 2px; padding: 6px 0 0; font-size: 12px; }
+  .vb { display: grid; grid-template-columns: minmax(0,1fr) auto auto auto; gap: 2px 10px; padding: 7px 12px; border-bottom: 1px solid var(--line); font-size: 13px; align-items: baseline; }
+  .vb .who { font-weight: 600; } .vb .who small { color: var(--muted); font-weight: 400; margin-left: 4px; }
+  .vb .n { font-family: var(--mono); text-align: right; font-variant-numeric: tabular-nums; }
+  .vbtotal { display: flex; justify-content: space-between; padding: 9px 12px; background: var(--panel-2); font-size: 13px; }
+  details.method > summary { padding: 10px 12px; background: var(--panel-2); font-weight: 600; }
+  details.method > summary .sub { color: var(--muted); font-weight: 400; font-size: 12px; margin-left: 6px; }
+  .mgrid { display: grid; grid-template-columns: 1fr 1fr; }
+  .mgrid > div + div { border-left: 1px solid var(--line); }
+  .mgrid h4 { margin: 0; padding: 9px 12px; font: 700 14px/1 var(--display); text-transform: uppercase; letter-spacing: .06em; color: var(--muted); border-bottom: 1px solid var(--line); }
+  .mgrid table { min-width: 0; }
+  @media (max-width: 960px) { .mgrid { grid-template-columns: 1fr; } .mgrid > div + div { border-left: 0; border-top: 1px solid var(--line); } #tab-nfl aside { position: static; max-height: none; } }
 </style>
 </head>
 <body>
 <header>
-  <h1>Cole's Racing <span>Scanner</span></h1>
-  <div class="status">
+  <h1>Cole's Market Inefficiency <span>Scanner</span></h1>
+  <div class="status" id="status-racing">
     <span id="s-update">loading…</span>
     <span class="pill warn" id="s-model"></span>
   </div>
+  <div class="status" id="status-nfl" hidden></div>
 </header>
+<nav class="tabs" aria-label="Sport">
+  <button id="tabbtn-racing" class="on" onclick="showTab('racing')">Racing</button>
+  <button id="tabbtn-nfl" onclick="showTab('nfl')">NFL</button>
+</nav>
 
-<main>
+<main id="tab-racing">
   <section>
     <div class="tracks" id="tracks"></div>
     <div class="toolbar">
@@ -155,6 +200,41 @@
     </div>
   </aside>
 </main>
+
+<main id="tab-nfl" hidden>
+  <section>
+    <div class="card">
+      <div class="nhead">
+        <div><div class="ttl">Anytime touchdown</div><div class="sub" id="nfl-week">loading…</div></div>
+        <div class="ctl">
+          <select id="nfl-game" aria-label="Game"><option value="">All games</option></select>
+          <label class="chk"><input type="checkbox" id="nfl-only50" checked> 50%+ only</label>
+          <label class="chk"><input type="checkbox" id="nfl-priced"> Priced only</label>
+        </div>
+      </div>
+      <div class="tbl"><table><thead><tr><th>Player</th><th>Pos</th><th>Game</th><th>Kick-off</th><th class="num" title="Vegas implied team points">Team pts</th>
+        <th class="num" title="Calibrated chance of 1+ rushing/receiving TD">Model</th><th class="num">Fair $</th><th class="num">Your price</th><th class="num">Edge</th><th class="num" title="% of bankroll: eighth-Kelly, max 1.5%">Stake</th><th class="num">Multi</th></tr></thead>
+        <tbody id="nfl-players"></tbody></table></div>
+      <div class="note">Type any bookie's anytime-TD price (saved on this device only) to see the edge and a suggested stake as % of bankroll (eighth-Kelly, max 1.5% while the model is unproven).
+        Kick-off times are in your local time. Out players are hidden; confirm inactives ~90 min before kick-off.</div>
+    </div>
+    <div class="card">
+      <div class="nhead"><div><div class="ttl">Game angles</div><div class="sub">Closing spread and total · kick-off wind forecast · flagged angles first</div></div></div>
+      <div id="nfl-games"></div>
+    </div>
+    <details class="card method">
+      <summary>Model check &amp; tested angles <span class="sub">how reliable are these numbers?</span></summary>
+      <div class="mgrid"><div><h4>Calibration (out of sample)</h4><div id="nfl-calib"></div></div><div><h4>Angles vs closing lines</h4><div id="nfl-angles"></div></div></div>
+    </details>
+  </section>
+  <aside>
+    <div class="card"><h3>Value board</h3><div id="nfl-value"></div></div>
+    <div class="card"><h3>Multi builder</h3><div id="nfl-multi"></div></div>
+    <div class="card"><h3>Cole's paper picks</h3><div class="kv" id="nfl-papersum"></div><div id="nfl-paper"></div></div>
+    <div class="note" id="nfl-note"></div>
+  </aside>
+</main>
+
 
 <dialog id="dlg">
   <form method="dialog" id="dlg-form">
@@ -376,6 +456,114 @@ setInterval(() => {
   });
 }, 1000);
 load(); setInterval(load, POLL_MS);
+
+// ================= NFL tab (reads nfl.json pushed by the scanner) =================
+const NFL_URL = 'nfl.json';
+let nfl = null, nflLegs = new Set(), nflTimer = null;
+let nflPrices = lsGet('nfl_prices', {});
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function showTab(t) {
+  $('#tab-racing').hidden = t !== 'racing'; $('#tab-nfl').hidden = t !== 'nfl';
+  $('#tabbtn-racing').classList.toggle('on', t === 'racing'); $('#tabbtn-nfl').classList.toggle('on', t === 'nfl');
+  $('#status-racing').hidden = t !== 'racing'; $('#status-nfl').hidden = t !== 'nfl';
+  lsSet('scanner_tab', t); if (t === 'nfl') nflLoad();
+}
+function etToDate(day, time) {
+  if (!day || !time) return null;
+  for (const off of [4, 5]) {
+    const d = new Date(`${day}T${time}:00Z`); d.setUTCHours(d.getUTCHours() + off);
+    const h = new Intl.DateTimeFormat('en-US', {timeZone: 'America/New_York', hour: '2-digit', hour12: false}).format(d);
+    if (+h % 24 === +time.slice(0, 2)) return d;
+  }
+  return null;
+}
+const kick = (day, time) => { const d = etToDate(day, time); return d ? d.toLocaleString([], {weekday: 'short', hour: 'numeric', minute: '2-digit'}) : '–'; };
+const pkey = p => `${p.game_id}|${p.player_id}`;
+const started = p => { const d = etToDate(p.gameday, p.gametime); return d && d.getTime() < Date.now(); };
+function nflCal(p) {
+  const b = (nfl && nfl.calibration && nfl.calibration.bins) || [];
+  const xs = [0, ...b.map(x => x.pred), 1], ys = [0, ...b.map(x => x.actual), 1];
+  for (let i = 1; i < xs.length; i++) if (p <= xs[i]) return ys[i-1] + (ys[i] - ys[i-1]) * (p - xs[i-1]) / ((xs[i] - xs[i-1]) || 1);
+  return p;
+}
+function stakePct(p, price) { const q = nflCal(p), b = price - 1, f = (b * q - (1 - q)) / b; return Math.min(1.5, Math.floor(Math.max(0, f / 8) * 100 / 0.25) * 0.25); }
+async function nflLoad() {
+  clearTimeout(nflTimer);
+  try { const r = await fetch(NFL_URL + '?t=' + Date.now(), {cache: 'no-store'}); if (r.ok) { nfl = await r.json(); nflRender(); } else $('#nfl-week').textContent = 'NFL data not published yet.'; }
+  catch (e) { $('#nfl-week').textContent = 'NFL data unavailable.'; }
+  nflTimer = setTimeout(nflLoad, 300000);
+}
+function nflPrice(k, v) { v = +v; if (v > 1) nflPrices[k] = v; else delete nflPrices[k]; lsSet('nfl_prices', nflPrices); nflRender(); }
+function nflLeg(k, on) { on ? nflLegs.add(k) : nflLegs.delete(k); nflRenderMulti(); }
+function nflRender() {
+  const d = nfl; if (!d) return;
+  const built = d.built_at ? new Date(d.built_at).toLocaleString([], {weekday: 'short', hour: 'numeric', minute: '2-digit'}) : '';
+  $('#nfl-week').textContent = `${d.season} · week ${d.week} · ${(d.games || []).length} games`;
+  $('#status-nfl').textContent = `data through ${d.data_through} · model built ${built}`;
+  $('#nfl-note').textContent = d.note || '';
+  const sel = $('#nfl-game'), cur = sel.value;
+  const opts = '<option value="">All games</option>' + (d.games || []).map(g => `<option value="${g.game_id}">${esc(g.away)} @ ${esc(g.home)} · ${kick(g.gameday, g.gametime)}</option>`).join('');
+  if (sel.dataset.sig !== opts) { sel.innerHTML = opts; sel.value = cur; sel.dataset.sig = opts; }
+  const only50 = $('#nfl-only50').checked, priced = $('#nfl-priced').checked, game = sel.value;
+  $('#nfl-players').innerHTML = (d.players || []).filter(p => (!only50 || nflCal(p.p) >= 0.5) && (!priced || nflPrices[pkey(p)]) && (!game || p.game_id === game)).map(p => {
+    const k = pkey(p), px = nflPrices[k] || '', pc = nflCal(p.p), edge = px ? pc * px - 1 : null, st = started(p), sp = px ? stakePct(p.p, px) : 0;
+    return `<tr class="${edge != null && edge >= 0.05 ? 'edge' : ''} ${st ? 'started' : ''}">
+      <td><b>${esc(p.player)}</b> ${p.injury ? `<span class="tag inj">${esc(p.injury).toUpperCase()}</span>` : ''}</td>
+      <td class="dim">${esc(p.pos)}</td><td>${esc(p.team)} <span class="dim">${p.home ? 'v' : '@'}</span> ${esc(p.opp)}</td>
+      <td class="dim">${st ? 'started' : kick(p.gameday, p.gametime)}</td><td class="num dim">${p.itt}</td>
+      <td class="num"><b>${(pc * 100).toFixed(0)}%</b></td><td class="num">$${(1 / pc).toFixed(2)}</td>
+      <td class="num"><input class="px" type="number" step="0.01" min="1.01" placeholder="$" value="${px}" aria-label="Your price for ${esc(p.player)}" onchange="nflPrice('${k}', this.value)"></td>
+      <td class="num ${edge > 0 ? 'pos' : 'dim'}">${edge == null ? '–' : (edge >= 0 ? '+' : '') + (edge * 100).toFixed(0) + '%'}</td>
+      <td class="num">${px ? (sp > 0 ? `<b>${sp.toFixed(2)}%</b>` : '<span class="dim">0</span>') : '<span class="dim">–</span>'}</td>
+      <td class="num"><input type="checkbox" style="width:auto" ${nflLegs.has(k) ? 'checked' : ''} onchange="nflLeg('${k}', this.checked)" aria-label="Add to multi"></td></tr>`;
+  }).join('') || '<tr><td colspan="11" class="empty">No players match these filters.</td></tr>';
+
+  const vals = (d.players || []).filter(p => nflPrices[pkey(p)] && !started(p)).map(p => { const px = nflPrices[pkey(p)], pc = nflCal(p.p); return {p, px, edge: pc * px - 1, stake: stakePct(p.p, px)}; })
+    .filter(v => v.edge >= 0.05).sort((a, b) => b.edge - a.edge);
+  const tot = vals.reduce((a, v) => a + v.stake, 0);
+  $('#nfl-value').innerHTML = vals.length ? vals.map(v => `<div class="vb"><div class="who">${esc(v.p.player)}<small>${esc(v.p.team)}</small></div><div class="n">$${v.px.toFixed(2)}</div><div class="n pos">+${(v.edge * 100).toFixed(0)}%</div><div class="n"><b>${v.stake.toFixed(2)}%</b></div></div>`).join('') +
+    `<div class="vbtotal"><span>${vals.length} picks · total stake</span><b>${tot.toFixed(2)}%</b></div>` : '<div class="empty">Type bookie prices into the table to see which players have value.</div>';
+  $('#tabbtn-nfl').innerHTML = 'NFL' + (vals.length ? `<span class="cnt">${vals.length}</span>` : '');
+
+  const games = (d.games || []).slice().sort((a, b) => b.flags.filter(f => f.type !== 'wind_check').length - a.flags.filter(f => f.type !== 'wind_check').length);
+  $('#nfl-games').innerHTML = games.map(g => {
+    const sp = g.spread_home == null ? '' : (g.spread_home > 0 ? `${g.home} −${g.spread_home}` : g.spread_home < 0 ? `${g.away} −${-g.spread_home}` : 'pick');
+    const chips = [sp && `<span class="nchip">${sp}</span>`, g.total != null && `<span class="nchip">total ${g.total}</span>`, g.roof && `<span class="nchip">${esc(g.roof)}</span>`,
+      g.wind != null && `<span class="nchip ${g.wind >= 15 ? 'warn' : ''}">wind ${g.wind.toFixed(0)} mph</span>`, g.referee && `<span class="nchip">ref ${esc(g.referee)}</span>`].filter(Boolean).join('');
+    const flags = g.flags.filter(f => f.type !== 'wind_check').map(f => `<div class="flag"><div><span class="tag lead">${f.type === 'road_fav_7' ? 'BIG ROAD FAV' : 'WIND'}</span> <b>${esc(f.bet)}</b></div><div class="dim">${esc(f.note)}</div></div>`).join('');
+    return `<div class="game"><div class="gt"><b>${esc(g.away)} @ ${esc(g.home)}</b><span class="when">${kick(g.gameday, g.gametime)}</span></div><div class="nchips">${chips}</div>${flags}</div>`;
+  }).join('') || '<div class="empty">No upcoming games.</div>';
+
+  const paper = d.paper || [], settled = paper.filter(r => r.result === 'won' || r.result === 'lost');
+  const pricedS = settled.filter(r => r.price), pnl = pricedS.reduce((a, r) => a + (r.result === 'won' ? r.price - 1 : -1), 0);
+  $('#nfl-papersum').innerHTML = `<div class="k">Open / settled</div><div class="v">${paper.length - settled.length} / ${settled.length}</div>
+    <div class="k">Won (model expected)</div><div class="v">${settled.length ? `${settled.filter(r => r.result === 'won').length} (${settled.reduce((a, r) => a + (r.model_prob || 0), 0).toFixed(1)})` : '–'}</div>
+    <div class="k">ROI at logged prices</div><div class="v ${pricedS.length ? cls(pnl) : ''}">${pricedS.length ? (100 * pnl / pricedS.length).toFixed(1) + '%' : '–'}</div>`;
+  $('#nfl-paper').innerHTML = paper.map(r => `<div class="bet"><div><b>${esc(String(r.selection).replace(/ anytime TD/, ''))}</b></div><div class="st ${r.result || 'open'}">${(r.result || 'open').toUpperCase()}</div>
+    <div class="dim">${r.price ? '$' + r.price.toFixed(2) : ''} ${esc(r.bookmaker || '')} · model ${r.model_prob ? (r.model_prob * 100).toFixed(0) + '%' : '–'}</div><div></div></div>`).join('') || '<div class="empty">No paper picks yet.</div>';
+
+  const c = d.calibration || {};
+  $('#nfl-calib').innerHTML = c.bins ? `<div class="note">Seasons ${esc(c.seasons)}, ${c.n.toLocaleString()} player-games, each season predicted only from earlier seasons. Rated 50%+ scored <b>${(c.p50.actual * 100).toFixed(1)}%</b> vs ${(c.p50.pred * 100).toFixed(1)}% predicted.</div>
+    <table><thead><tr><th>Raw model</th><th class="num">n</th><th class="num">Predicted</th><th class="num">Actual</th></tr></thead><tbody>${c.bins.map(b => `<tr><td>${esc(b.range).replace(/[\(\]]/g, '').replace(', ', '–')}</td><td class="num">${b.n.toLocaleString()}</td><td class="num">${(b.pred * 100).toFixed(1)}%</td><td class="num">${(b.actual * 100).toFixed(1)}%</td></tr>`).join('')}</tbody></table>
+    <div class="note">Calibration is not profit: beating the bookies can only be shown by the paper picks.</div>` : '';
+  $('#nfl-angles').innerHTML = (d.angle_notes || []).length ? `<table><thead><tr><th>Angle</th><th class="num">06–17</th><th class="num">18–25</th></tr></thead><tbody>${d.angle_notes.map(a => `<tr><td style="white-space:normal">${esc(a.angle)} <span class="tag ${/lead/.test(a.verdict) ? 'lead' : 'fail'}">${esc(a.verdict.split(' — ')[0])}</span></td><td class="num">${esc(a.discovery)}</td><td class="num">${esc(a.holdout)}</td></tr>`).join('')}</tbody></table>
+    <div class="note">ROI at closing lines, bets in brackets. Leads are not statistically significant.</div>` : '';
+  nflRenderMulti();
+}
+function nflRenderMulti() {
+  const legs = [...nflLegs].map(k => (nfl.players || []).find(p => pkey(p) === k)).filter(Boolean);
+  if (!legs.length) { $('#nfl-multi').innerHTML = '<div class="empty">Tick “Multi” on players to build a multi.</div>'; return; }
+  const prob = legs.reduce((a, p) => a * nflCal(p.p), 1), same = new Set(legs.map(p => p.game_id)).size < legs.length;
+  const prod = legs.every(p => nflPrices[pkey(p)]) ? legs.reduce((a, p) => a * nflPrices[pkey(p)], 1) : null;
+  $('#nfl-multi').innerHTML = legs.map(p => `<div class="sug"><div class="n">${esc(p.player)} <span class="dim">${esc(p.team)}</span></div><div class="num">${(nflCal(p.p) * 100).toFixed(0)}%</div></div>`).join('') +
+    `<div class="kv"><div class="k">Chance all score</div><div class="v">${(prob * 100).toFixed(1)}%</div><div class="k">Fair multi price</div><div class="v">$${(1 / prob).toFixed(2)}</div>
+     <div class="k">Product of your prices</div><div class="v">${prod ? '$' + prod.toFixed(2) : '–'}</div><div class="k">Edge</div><div class="v ${prod ? cls(prob * prod - 1) : ''}">${prod ? ((prob * prod - 1) * 100).toFixed(1) + '%' : '–'}</div></div>` +
+    (same ? '<div class="note">Same-game legs: use the bookie\'s same-game multi price, not the product.</div>' : '') +
+    '<div class="row"><button class="small" onclick="nflLegs.clear(); nflRender()">Clear</button></div>';
+}
+$('#nfl-only50').onchange = nflRender; $('#nfl-priced').onchange = nflRender; $('#nfl-game').onchange = nflRender;
+nflLoad();
+if (lsGet('scanner_tab', 'racing') === 'nfl') showTab('nfl');
 </script>
 </body>
 </html>
