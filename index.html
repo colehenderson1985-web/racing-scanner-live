@@ -215,6 +215,7 @@
       <div class="tbl"><table><thead><tr><th>Player</th><th>Pos</th><th>Game</th><th>Kick-off</th><th class="num" title="Vegas implied team points">Team pts</th>
         <th class="num" title="Calibrated chance of 1+ rushing/receiving TD">Model</th><th class="num">Fair $</th><th class="num">Your price</th><th class="num">Edge</th><th class="num" title="% of bankroll: eighth-Kelly, max 1.5%">Stake</th><th class="num">Multi</th></tr></thead>
         <tbody id="nfl-players"></tbody></table></div>
+      <div class="note" id="nfl-pricenote" style="color:var(--fg)"></div>
       <div class="note">Type any bookie's anytime-TD price (saved on this device only) to see the edge and a suggested stake as % of bankroll (eighth-Kelly, max 1.5% while the model is unproven).
         Kick-off times are in your local time. Out players are hidden; confirm inactives ~90 min before kick-off.</div>
     </div>
@@ -460,7 +461,8 @@ load(); setInterval(load, POLL_MS);
 // ================= NFL tab (reads nfl.json pushed by the scanner) =================
 const NFL_URL = 'nfl.json';
 let nfl = null, nflLegs = new Set(), nflTimer = null;
-let nflPrices = lsGet('nfl_prices', {});
+let nflMine = lsGet('nfl_prices', {}), nflPrices = {};
+function nflMergePrices() { nflPrices = {}; for (const [k, o] of Object.entries((nfl && nfl.prices) || {})) nflPrices[k] = o.price; Object.assign(nflPrices, nflMine); }
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 function showTab(t) {
   $('#tab-racing').hidden = t !== 'racing'; $('#tab-nfl').hidden = t !== 'nfl';
@@ -493,10 +495,13 @@ async function nflLoad() {
   catch (e) { $('#nfl-week').textContent = 'NFL data unavailable.'; }
   nflTimer = setTimeout(nflLoad, 300000);
 }
-function nflPrice(k, v) { v = +v; if (v > 1) nflPrices[k] = v; else delete nflPrices[k]; lsSet('nfl_prices', nflPrices); nflRender(); }
+function nflPrice(k, v) { v = +v; if (v > 1) nflMine[k] = v; else delete nflMine[k]; lsSet('nfl_prices', nflMine); nflMergePrices(); nflRender(); }
 function nflLeg(k, on) { on ? nflLegs.add(k) : nflLegs.delete(k); nflRenderMulti(); }
 function nflRender() {
   const d = nfl; if (!d) return;
+  nflMergePrices();
+  const sp0 = Object.values(d.prices || {}); const last = sp0.map(o => o.at).sort().pop();
+  $('#nfl-pricenote').textContent = sp0.length ? `Prices pre-filled from Cole's ${[...new Set(sp0.map(o => o.book).filter(Boolean))].join('/') || 'bookie'} entries${last ? ' (last ' + new Date(last).toLocaleString([], {weekday: 'short', hour: 'numeric', minute: '2-digit'}) + ')' : ''}. Prices move: type the current price to override it on this device.` : '';
   const built = d.built_at ? new Date(d.built_at).toLocaleString([], {weekday: 'short', hour: 'numeric', minute: '2-digit'}) : '';
   $('#nfl-week').textContent = `${d.season} · week ${d.week} · ${(d.games || []).length} games`;
   $('#status-nfl').textContent = `data through ${d.data_through} · model built ${built}`;
