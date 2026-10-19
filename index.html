@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Cole's Market Inefficiency Scanner</title>
+<title>Cole's Racing Scanner</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
 <style>
@@ -143,6 +143,35 @@
   .mgrid h4 { margin: 0; padding: 9px 12px; font: 700 14px/1 var(--display); text-transform: uppercase; letter-spacing: .06em; color: var(--muted); border-bottom: 1px solid var(--line); }
   .mgrid table { min-width: 0; }
   @media (max-width: 960px) { .mgrid { grid-template-columns: 1fr; } .mgrid > div + div { border-left: 0; border-top: 1px solid var(--line); } #tab-nfl aside { position: static; max-height: none; } }
+
+  /* ---- race-day layout (Oct 2026) ---- */
+  #tab-racing .col { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+  #tab-racing .col > .card { margin: 0; }
+  #tab-racing aside .card { position: static; }
+  @media (max-width: 960px) { #tab-racing aside { order: 0; } }
+  .ch { margin: 0; padding: 10px 12px; font: 700 16px/1.1 var(--display); text-transform: uppercase; letter-spacing: .05em; border-bottom: 1px solid var(--line); display: flex; justify-content: space-between; gap: 8px; align-items: baseline; }
+  .ch .dim { font: 400 12px var(--body); text-transform: none; letter-spacing: 0; }
+  details > summary { list-style: none; cursor: pointer; }
+  details > summary::-webkit-details-marker { display: none; }
+  .mono { font-family: var(--mono); }
+  .good { color: var(--good); font-weight: 600; }
+  .eyebrow { font-size: 12px; font-weight: 600; color: var(--good); letter-spacing: .06em; text-transform: uppercase; }
+  .nx-head { display: flex; justify-content: space-between; gap: 12px; padding: 14px 14px 12px; }
+  .nx-title { font: 700 26px/1.1 var(--display); margin: 2px 0; }
+  .nx-clock { font: 600 22px/1 var(--mono); }
+  .nx-pick { background: var(--value-bg); padding: 12px 14px; border-top: 1px solid var(--line); }
+  .row1 { display: flex; justify-content: space-between; gap: 8px; align-items: baseline; }
+  .pc { padding: 11px 12px; border-top: 1px solid var(--line); display: flex; flex-direction: column; gap: 2px; }
+  .pc.done { opacity: .6; }
+  .rsr { display: grid; grid-template-columns: 78px 1fr auto; gap: 0 8px; padding: 10px 12px; border-top: 1px solid var(--line); align-items: center; cursor: pointer; }
+  .rsr:first-child { border-top: none; }
+  .rsr.next { background: var(--value-bg); }
+  .rsr.done { color: var(--muted); }
+  .rsr .t { font-weight: 600; }
+  .rsr .tg { font-size: 12px; font-weight: 600; text-align: right; }
+  #d-fields[open] > summary .ch { border-bottom: 1px solid var(--line); }
+  #d-fields:not([open]) > summary .ch { border-bottom: none; }
+  #d-fields .card { margin: 10px; }
 </style>
 </head>
 <body>
@@ -160,46 +189,55 @@
 </nav>
 
 <main id="tab-racing">
-  <section>
-    <div class="tracks" id="tracks"></div>
-    <div class="toolbar">
-      <div class="chips" id="chips" role="tablist" aria-label="Filter by track"></div>
-      <button class="small" id="btn-next">Next to jump ↓</button>
-      <button class="small" id="btn-help" aria-expanded="false">How to read this</button>
-    </div>
-    <div class="help" id="help" hidden>
-      <b>Odds</b> is TAB's current fixed price (Betfair exchange back/lay appears in yellow when that feed is connected). Arrows show the latest move. <b>Rated</b> is the scanner's win chance and the price that chance is worth.
-      <b>Edge</b> compares the two: <span class="pos">+15%</span> means the price on offer pays 15% more than the scanner thinks it should.
-      A runner is flagged <span class="badge value">VALUE</span> when the edge clears 15% and the price is between $2.50 and $20 (short favourites and long shots are excluded on purpose).
-      <b>Place</b> is the chance of running top three (top two in fields under 8). The speed map under each race groups runners by expected position early.
-      The model is unvalidated: treat picks as a talking point, not advice.
-    </div>
-    <div id="races"></div>
-  </section>
-  <aside>
+  <section class="col">
+    <div class="card" id="p-next"><div class="empty">Loading…</div></div>
     <div class="card">
-      <details id="d-picks" open><summary><h3>Scanner picks <span id="n-picks" class="dim"></span></h3></summary>
-      <div id="sugs"></div>
-      </details>
-      <details id="d-bets" open><summary><h3>My bets (this device only)</h3></summary>
-      <div class="kv">
-        <div class="k">Bankroll</div><div class="v big" id="l-current">–</div>
-        <div class="k">Started</div><div class="v" id="l-start">–</div>
-        <div class="k">Open</div><div class="v" id="l-open">–</div>
-        <div class="k">P&amp;L</div><div class="v" id="l-pnl">–</div>
-        <div class="k">W / L / open</div><div class="v" id="l-wl">–</div>
-      </div>
-      <div class="row">
-        <input id="in-bankroll" type="number" step="10" placeholder="Set bankroll" aria-label="Set bankroll">
-        <button id="btn-bankroll" class="small">Set</button>
-        <span class="hint">Stored in your browser only</span>
-      </div>
-      <div id="bets"></div>
-      </details>
-      <div class="note" id="note"></div>
+      <h3 class="ch">Run sheet <span class="dim" id="p-day"></span></h3>
+      <div id="p-runsheet"></div>
     </div>
+    <details class="card" id="d-fields">
+      <summary><h3 class="ch">Full fields <span class="dim">every runner, odds and speed map</span></h3></summary>
+      <div class="tracks" id="tracks"></div>
+      <div class="toolbar">
+        <div class="chips" id="chips" role="tablist" aria-label="Filter by track"></div>
+        <button class="small" id="btn-next">Next to jump ↓</button>
+      </div>
+      <div id="races"></div>
+    </details>
+  </section>
+  <aside class="col">
+    <div class="card">
+      <h3 class="ch">Best bets today <span class="dim" id="p-cardn"></span></h3>
+      <div class="note" style="padding-top:6px">Units out of 100 for the day. Fewer bets when prices don't support more.</div>
+      <div id="p-card"><div class="empty">The day's card appears once fields and prices are in.</div></div>
+    </div>
+    <div class="card">
+      <h3 class="ch">Place (trial) <span class="dim" id="n-picks"></span></h3>
+      <div class="note" style="padding-top:6px">These appear about an hour before each race, once Betfair's place market is up.</div>
+      <div id="sugs"></div>
+    </div>
+    <div class="card">
+      <h3 class="ch">Your bank</h3>
+      <div class="note" style="padding-top:6px">Saved on this phone only. Stakes above scale to it.</div>
+      <div class="row" style="align-items:flex-end">
+        <label style="flex:1;display:block;font-size:12px;color:var(--muted)">Bank for the week ($)
+          <input id="in-bank" type="text" inputmode="decimal" placeholder="100" style="width:100%;min-height:44px;margin-top:4px"></label>
+        <button id="btn-bank" class="primary" style="min-height:44px;padding:8px 16px">Save</button>
+      </div>
+      <div class="note" id="p-unit"></div>
+    </div>
+    <div class="card">
+      <h3 class="ch">How to read this</h3>
+      <div class="note" style="color:var(--fg)">
+        <p style="margin:0 0 8px"><b>Place (trial)</b> picks are place bets where Betfair's win and place markets disagree by 20% or more. The rule tested well on three years of results and is now on a live trial.</p>
+        <p style="margin:0 0 8px"><b>Best bets</b> is the day's plan in units out of 100: take the bet only at the price shown or better.</p>
+        <p style="margin:0">Straight win tips aren't shown: none of the win rules tested beat the market.</p>
+      </div>
+    </div>
+    <div class="note" id="note">Trial picks, not advice. Only bet what you can afford to lose.<br>Gambling Help: <a href="tel:1800858858">1800 858 858</a> · <a href="https://www.gamblinghelponline.org.au">gamblinghelponline.org.au</a></div>
   </aside>
 </main>
+
 
 <main id="tab-nfl" hidden>
   <section>
@@ -237,58 +275,25 @@
 </main>
 
 
-<dialog id="dlg">
-  <form method="dialog" id="dlg-form">
-    <div style="font-weight:600;margin-bottom:6px" id="dlg-title"></div>
-    <label>Type <select name="bet_type" id="f-type"><option>win</option><option>place</option><option>each way</option><option>exotic</option></select></label>
-    <label>Odds <input name="odds" id="f-odds" type="number" step="0.01" required></label>
-    <label>Stake $ <input name="stake" id="f-stake" type="number" step="1" required></label>
-    <label>Bookie <input name="bookmaker" id="f-book" placeholder="TAB"></label>
-    <div class="hint" id="dlg-hint"></div>
-    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px">
-      <button type="button" id="dlg-cancel">Cancel</button>
-      <button class="primary" value="ok">Log bet</button>
-    </div>
-  </form>
-</dialog>
+
 
 <script>
 const SNAPSHOT_URL = 'snapshot.json';
 const POLL_MS = 45000;
 let snap = null, prev = {}, collapsed = new Set(), manual = new Set(), track = 'all';
-const EDGE_MIN = 0.15, ODDS_MIN = 2.5, ODDS_MAX = 20;
 const $ = s => document.querySelector(s);
 const fmt$ = v => (v == null ? '–' : (v < 0 ? '-' : '') + '$' + Math.abs(v).toFixed(0));
 const pct = v => (v * 100).toFixed(v < 0.1 ? 1 : 0) + '%';
 const cls = v => v > 0 ? 'pos' : v < 0 ? 'neg' : 'dim';
 const day = () => new Date().toISOString().slice(0, 10);
 
-// ---------- per-device ledger (localStorage) ----------
+// ---------- this phone's bank (localStorage only) ----------
 function lsGet(k, d) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch (e) { return d; } }
 function lsSet(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
-let ledger = lsGet('ledger-' + day(), { bankroll: 0, bets: [] });
-function saveLedger() { lsSet('ledger-' + day(), ledger); }
-function ledgerSummary() {
-  const bets = ledger.bets;
-  const open = bets.filter(b => b.status === 'open').reduce((a, b) => a + b.stake, 0);
-  const pnl = bets.reduce((a, b) => a + (b.status === 'won' ? b.odds * b.stake - b.stake : b.status === 'lost' ? -b.stake : 0), 0);
-  return { start: ledger.bankroll, current: ledger.bankroll + pnl, open, pnl,
-           won: bets.filter(b => b.status === 'won').length, lost: bets.filter(b => b.status === 'lost').length,
-           nopen: bets.filter(b => b.status === 'open').length };
-}
-function settleFromResults() {
-  if (!snap) return;
-  let changed = false;
-  for (const b of ledger.bets) {
-    if (b.status !== 'open' || b.runner_number == null) continue;
-    const race = snap.races.find(r => r.key === b.race_key); if (!race) continue;
-    const r = race.runners.find(x => x.number === b.runner_number); if (!r || !r.result) continue;
-    const places = race.runners.filter(x => !x.scratched).length >= 8 ? 3 : 2;
-    if (b.bet_type === 'win') { b.status = r.result === 1 ? 'won' : 'lost'; changed = true; }
-    else if (b.bet_type === 'place') { b.status = r.result <= places ? 'won' : 'lost'; changed = true; }
-  }
-  if (changed) saveLedger();
-}
+let bank = +lsGet('units_bank', 0) || 0;
+const ord = n => n + (['st','nd','rd'][n-1] || 'th');
+const TYPE = {win: 'win', place: 'place', each_way: 'each way', quinella: 'quinella', trifecta: 'trifecta', multi: 'multi'};
+const stakeTxt = units => bank ? '$' + (bank * units / 100).toFixed(bank * units / 100 < 10 ? 2 : 0) : units + 'u';
 
 // ---------- data ----------
 async function load() {
@@ -296,13 +301,11 @@ async function load() {
     const r = await fetch(SNAPSHOT_URL + '?t=' + Date.now(), { cache: 'no-store' });
     if (!r.ok) throw new Error('HTTP ' + r.status);
     snap = await r.json();
-    settleFromResults();
     render();
   } catch (e) {
     $('#s-update').textContent = 'could not load snapshot (' + e.message + ')';
   }
 }
-
 
 const money = v => v ? '$' + (v < 10 ? v.toFixed(2) : (v < 100 && v % 1 ? v.toFixed(1) : Math.round(v))) : '–';
 function oddsCell(r) {
@@ -311,7 +314,6 @@ function oddsCell(r) {
   const bf = r.bf_back ? `<span class="bf" title="Betfair back / lay">${money(r.bf_back)}<span class="dim">/${money(r.bf_lay).slice(1)}</span></span>` : '';
   return tab + (bf ? ' ' + bf : '');
 }
-
 function jumpLabel(startIso, status, resulted) {
   if (resulted) return ['Resulted', 'done'];
   if (!startIso) return ['', 'dim'];
@@ -328,125 +330,128 @@ function spark(vals) {
   const pts = vals.map((v, i) => `${(i / (vals.length - 1) * w).toFixed(1)},${(h - (v - mn) / rng * h).toFixed(1)}`).join(' ');
   return `<svg class="spark" width="${w}" height="${h}" aria-hidden="true"><polyline fill="none" stroke="currentColor" stroke-opacity=".6" stroke-width="1.2" points="${pts}"/></svg>`;
 }
-const timeFmt = iso => iso ? new Date(iso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
+const timeFmt = iso => iso ? new Date(iso).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) : '';
+const isDone = r => r.runners.some(x => x.result) || /abandon/i.test(r.status || '');
+const minsTo = iso => iso ? Math.round((Date.parse(iso) - Date.now()) / 60000) : null;
 
-function render() {
-  const d = snap;
-  const age = Math.round((Date.now() - Date.parse(d.generated_at)) / 60000);
-  const asAt = d.data_as_at || d.last_update || d.generated_at;
-  const dataAge = Math.round((Date.now() - Date.parse(asAt)) / 60000);
-  $('#s-update').textContent = `odds as at ${timeFmt(asAt)} · ${dataAge <= 0 ? 'just now' : dataAge + ' min ago'}` + (d.betfair && d.betfair.races ? ` · Betfair on ${d.betfair.races} races` : '');
-  $('#s-update').className = dataAge > 6 ? 'neg' : '';
-  if (dataAge > 6) $('#s-update').textContent += ' · feed paused, prices may be stale';
-  $('#s-model').textContent = d.model === 'fitted' ? 'fitted model' : 'unvalidated model';
-  $('#tracks').innerHTML = d.meetings.map(m => `<span><b>${m.venue}</b> ${m.condition}${m.rail ? ' · rail ' + m.rail : ''}${m.weather ? ' · ' + m.weather : ''}</span>`).join('');
-  $('#note').textContent = d.note || '';
-
+function nextRace() {
   const now = Date.now();
-  const upcoming = d.races.filter(r => r.start_time && Date.parse(r.start_time) > now - 120000 && !r.runners.some(x => x.result));
-  const nextKey = upcoming.length ? upcoming[0].key : null;
+  return snap.races.find(r => !isDone(r) && (!r.start_time || Date.parse(r.start_time) > now - 120000)) || null;
+}
+
+function renderNext() {
+  const race = nextRace(), el = $('#p-next');
+  if (!race) { el.innerHTML = `<div class="empty">${snap.races.length ? 'All of today’s races are done. Tomorrow’s meetings appear here once the scanner moves on.' : 'No races in the snapshot yet.'}</div>`; return; }
+  const picks = snap.suggestions.filter(s => s.race_key === race.key);
+  const m = minsTo(race.start_time);
+  const act = race.runners.filter(r => !r.scratched).length;
+  el.innerHTML = `<div class="nx-head">
+      <div><div class="eyebrow">Next up</div><div class="nx-title">${esc(race.meeting)} R${race.number}</div>
+        <div class="dim" style="font-size:13px">${race.distance}m${race.condition ? ' · ' + esc(race.condition) : ''} · ${act} runners</div></div>
+      <div style="text-align:right"><div class="nx-clock" id="nx-clock" data-t="${race.start_time || ''}">${m != null ? (m >= 60 ? Math.floor(m / 60) + 'h ' + (m % 60) + 'm' : Math.max(m, 0) + ' min') : ''}</div><div class="dim" style="font-size:12px">${timeFmt(race.start_time)}</div></div></div>` +
+    (picks.length ? picks.map(s => `<div class="nx-pick"><div class="row1"><b>#${s.runner_number} ${esc(s.runner)} · place</b><span class="mono pos">+${Math.round(s.edge * 100)}%</span></div>
+        <div class="dim" style="font-size:13px">Betfair place about $${(+s.odds).toFixed(2)} · ${bank ? 'stake ' + '$' + (bank * s.stake_pct / 100).toFixed(2) : s.stake_pct + '% of bank'} · Place (trial)</div></div>`).join('')
+      : `<div class="note">No place pick for this race${race.runners.some(r => r.bf_place_back) ? '.' : ' yet (Betfair place prices not in).'}</div>`);
+}
+
+function renderCard() {
+  const c = snap.card;
+  if (!c || !(c.bets || []).length) { $('#p-card').innerHTML = '<div class="empty">No best bets yet today.</div>'; $('#p-cardn').textContent = ''; return; }
+  $('#p-cardn').textContent = `${c.bets.length} of max 10 · ${c.allocated}u on, ${c.reserve}u held`;
+  $('#p-card').innerHTML = c.bets.map(b => {
+    const L = b.live || {};
+    let right = '';
+    if (L.pos) right = (b.type === 'place' ? (L.placed ? '✅ placed' : '❌') : (L.won ? '✅ won' : '❌')) + ` ${ord(L.pos)}`;
+    else if (L.scratched) right = '<span class="neg">scratched</span>';
+    else if (L.price) right = `<span class="${L.ok ? 'pos' : 'neg'}">$${(+L.price).toFixed(2)} ${L.ok ? 'now' : '· below take'}</span>`;
+    const take = b.min_price ? (['quinella','trifecta','multi'].includes(b.type) ? `fair $${(+b.min_price).toFixed(2)}` : `take $${(+b.min_price).toFixed(2)}+`) : '';
+    return `<div class="pc ${L.pos || L.scratched ? 'done' : ''}"><div class="row1"><b>${esc(b.runner)} · ${TYPE[b.type] || b.type}</b><span class="mono"><b>${b.units}u</b>${bank ? ' <span class="dim">' + stakeTxt(b.units) + '</span>' : ''}</span></div>
+      <div class="row1 dim" style="font-size:13px"><span>${esc(b.race_key)} · ${timeFmt(b.jump)}${take ? ' · ' + take : ''}</span><span class="mono">${right}</span></div></div>`;
+  }).join('');
+}
+
+function renderRunsheet() {
+  const nx = nextRace();
+  const cardBy = {};
+  for (const b of (snap.card && snap.card.bets) || []) cardBy[b.race_key] = true;
+  $('#p-runsheet').innerHTML = snap.races.map(race => {
+    const done = isDone(race), isNext = nx && nx.key === race.key;
+    const n = snap.suggestions.filter(s => s.race_key === race.key).length;
+    const tag = isNext ? `<span class="pos">Next${n ? ' · ' + n + ' pick' + (n > 1 ? 's' : '') : ''}</span>` : done ? '<span class="dim">Done</span>' : cardBy[race.key] ? '<span class="good">Best bet</span>' : n ? `<span class="good">${n} pick${n > 1 ? 's' : ''}</span>` : '';
+    const placed = race.runners.filter(r => r.result && r.result <= 3).sort((a, b) => a.result - b.result);
+    return `<div class="rsr ${isNext ? 'next' : ''} ${done ? 'done' : ''}" data-goto="${esc(race.key)}"><span class="mono t">${timeFmt(race.start_time)}</span>
+      <span><b>${esc(race.meeting)} R${race.number}</b><br><span class="dim" style="font-size:12px">${race.distance}m${done && placed.length ? ' · ' + placed.map(r => '#' + r.number).join('-') : ''}</span></span>
+      <span class="tg">${tag}</span></div>`;
+  }).join('') || '<div class="empty">No races yet.</div>';
+}
+
+function renderFields() {
+  const d = snap;
+  $('#tracks').innerHTML = d.meetings.map(m => `<span><b>${esc(m.venue)}</b> ${esc(m.condition || '')}${m.rail ? ' · rail ' + esc(m.rail) : ''}${m.weather ? ' · ' + esc(m.weather) : ''}</span>`).join('');
+  const nx = nextRace(), nextKey = nx ? nx.key : null;
   const tracks = [...new Set(d.races.map(r => r.meeting))];
-  $('#chips').innerHTML = ['all', ...tracks].map(tk => `<button class="chip" role="tab" data-track="${tk}" aria-selected="${track === tk}">${tk === 'all' ? 'All tracks' : tk}</button>`).join('');
-  const cards = d.races.filter(r => track === 'all' || r.meeting === track).map(race => {
+  $('#chips').innerHTML = ['all', ...tracks].map(tk => `<button class="chip" role="tab" data-track="${esc(tk)}" aria-selected="${track === tk}">${tk === 'all' ? 'All tracks' : esc(tk)}</button>`).join('');
+  $('#races').innerHTML = d.races.filter(r => track === 'all' || r.meeting === track).map(race => {
     const resulted = race.runners.some(r => r.result);
-    if (resulted && !manual.has(race.key)) collapsed.add(race.key);
+    const open = manual.has(race.key) ? !collapsed.has(race.key) : race.key === nextKey;
     const [jl, jc] = jumpLabel(race.start_time, race.status, resulted);
+    const picks = new Set(d.suggestions.filter(s => s.race_key === race.key).map(s => s.runner_number));
     const rows = race.runners.map(r => {
       const k = race.key + '|' + r.number, p = prev[k];
       let flash = '';
       if (p != null && p !== r.signal) flash = r.signal < p ? 'flash-down' : 'flash-up';
       prev[k] = r.signal;
-      const arrow = r.prev_odds && r.signal && Math.abs(r.prev_odds - r.signal) / r.signal > 0.005 ? `<span class="arrow ${r.signal < r.prev_odds ? 'pos' : 'neg'}" title="${r.signal_src === 'BF' ? 'Betfair' : 'TAB'} move">${r.signal < r.prev_odds ? '▼' : '▲'}</span>` : '';
-      const res = r.result ? `<span class="badge res">${r.result}${['st', 'nd', 'rd'][r.result - 1] || 'th'}</span> ` : '';
-      const val = r.value && !resulted ? ` <span class="badge value">VALUE</span>` : '';
-      const log = !resulted && !r.scratched ? `<button class="small" data-log="${race.key}|${r.number}">Log</button>` : '';
-      const inBand = r.best_odds >= ODDS_MIN && r.best_odds <= ODDS_MAX;
-      return `<tr class="${r.scratched ? 'scr' : ''} ${r.value && !resulted ? 'value' : ''}">
-        <td class="num">${r.number}</td>
-        <td>${res}${r.name}${val}</td>
-        <td class="num">${r.barrier ?? '-'}</td><td class="num">${r.weight ?? '-'}</td>
-        <td>${r.jockey || ''}</td><td class="num dim">${r.form || ''}</td><td class="dim">${(r.style || '').replace('_', ' ')}</td>
+      const arrow = r.prev_odds && r.signal && Math.abs(r.prev_odds - r.signal) / r.signal > 0.005 ? `<span class="arrow ${r.signal < r.prev_odds ? 'pos' : 'neg'}">${r.signal < r.prev_odds ? '▼' : '▲'}</span>` : '';
+      const res = r.result ? `<span class="badge res">${ord(r.result)}</span> ` : '';
+      const pk = picks.has(r.number) && !resulted ? ' <span class="badge value">PLACE PICK</span>' : '';
+      return `<tr class="${r.scratched ? 'scr' : ''} ${pk ? 'value' : ''}">
+        <td class="num">${r.number}</td><td>${res}${esc(r.name)}${pk}</td>
+        <td class="num">${r.barrier ?? '-'}</td><td>${esc(r.jockey || '')}</td><td class="num dim">${esc(r.form || '')}</td>
         <td class="num ${flash}">${oddsCell(r)}${arrow}${spark(r.spark)}</td>
-        <td class="num"><b>${r.scratched ? '' : pct(r.rated_prob)}</b> <span class="dim">$${(r.rated_price || 0).toFixed(2)}</span></td>
-        <td class="num dim">${r.scratched ? '' : pct(r.place_prob)}</td>
-        <td class="num ${cls(r.edge)} ${inBand ? '' : 'edge-out'}" title="${inBand ? '' : 'Outside the $2.50–$20 band: not bet on'}">${r.scratched ? '' : (r.edge >= 0 ? '+' : '') + (r.edge * 100).toFixed(0) + '%'}</td>
-        <td>${log}</td></tr>`;
+        <td class="num dim">${r.scratched || r.place_q == null ? '–' : Math.round(r.place_q * 100) + '%'}</td>
+        <td class="num">${r.scratched || !r.bf_place_back ? '–' : '$' + (+r.bf_place_back).toFixed(2)}</td></tr>`;
     }).join('');
-    return `<div class="card ${collapsed.has(race.key) ? 'collapsed' : ''} ${race.key === nextKey ? 'next' : ''}" data-key="${race.key}">
-      <div class="head" data-toggle="${race.key}">
-        <span class="rn">R${race.number}</span>
-        <span class="title">${race.meeting}</span>
-        <span class="meta">${race.name} · ${race.distance}m · ${race.class || ''}</span>
-        <span class="meta">${timeFmt(race.start_time)}</span>
-        <span class="jump ${jc}">${jl}</span>
-      </div>
-      <div class="body"><div class="tbl"><table><thead><tr><th>#</th><th>Runner</th><th>Bar</th><th>Wt</th><th>Jockey</th><th>Form</th><th>Style</th>
-        <th style="text-align:right">Odds</th><th style="text-align:right">Rated</th><th style="text-align:right">Place</th><th style="text-align:right">Edge</th><th></th></tr></thead>
-        <tbody>${rows}</tbody></table></div>
-        <div class="speed">${race.speed_map || ''}</div></div></div>`;
-  });
-  $('#races').innerHTML = cards.join('') || '<div class="empty">No races in the snapshot yet.</div>';
-  $('#n-picks').textContent = d.suggestions.length ? `(${d.suggestions.length})` : '';
-
-  $('#sugs').innerHTML = d.suggestions.length ? d.suggestions.map(s => `<div class="sug">
-      <div class="n">${s.runner} <span class="dim">${s.bet_type}</span></div>
-      <div><button class="small primary" data-log="${s.race_key}|${s.runner_number}" data-sug='${JSON.stringify(s).replace(/'/g, '&#39;')}'>Log</button></div>
-      <div class="d">${s.race_key} · $${(s.odds || 0).toFixed(2)} · rated ${pct(s.rated_prob)} · edge +${(s.edge * 100).toFixed(0)}% · ${s.stake_pct}% of bank · ${s.confidence}</div><div></div>
-    </div>`).join('') : '<div class="empty">Nothing clears the edge threshold at current prices.</div>';
-
-  renderLedger();
+    return `<div class="card ${open ? '' : 'collapsed'} ${race.key === nextKey ? 'next' : ''}" data-key="${esc(race.key)}">
+      <div class="head" data-toggle="${esc(race.key)}">
+        <span class="rn">R${race.number}</span><span class="title">${esc(race.meeting)}</span>
+        <span class="meta">${esc(race.name || '')} · ${race.distance}m</span><span class="meta">${timeFmt(race.start_time)}</span>
+        <span class="jump ${jc}">${jl}</span></div>
+      <div class="body"><div class="tbl"><table><thead><tr><th>#</th><th>Runner</th><th>Bar</th><th>Jockey</th><th>Form</th>
+        <th style="text-align:right">Odds</th><th style="text-align:right">Place chance</th><th style="text-align:right">BF place</th></tr></thead>
+        <tbody>${rows}</tbody></table></div><div class="speed">${race.speed_map || ''}</div></div></div>`;
+  }).join('') || '<div class="empty">No races in the snapshot yet.</div>';
 }
 
-function renderLedger() {
-  const l = ledgerSummary();
-  $('#l-current').textContent = l.start ? fmt$(l.current) : '–'; $('#l-current').className = 'v big ' + cls(l.pnl);
-  $('#l-start').textContent = l.start ? fmt$(l.start) : '–';
-  $('#l-open').textContent = fmt$(l.open);
-  $('#l-pnl').textContent = (l.pnl >= 0 ? '+' : '') + fmt$(l.pnl); $('#l-pnl').className = 'v ' + cls(l.pnl);
-  $('#l-wl').textContent = `${l.won} / ${l.lost} / ${l.nopen}`;
-  $('#bets').innerHTML = ledger.bets.length ? ledger.bets.slice().reverse().map(b => `<div class="bet">
-      <div><b>${b.runner}</b> <span class="dim">${b.bet_type} · ${b.race_key}</span></div>
-      <div class="st ${b.status}">${b.status.toUpperCase()}${b.status === 'won' ? ' +' + fmt$(b.odds * b.stake - b.stake) : ''}</div>
-      <div class="dim">${fmt$(b.stake)} @ $${b.odds.toFixed(2)} ${b.bookmaker || ''} · ${b.at}</div>
-      <div>${b.status === 'open' ? `<button class="small" data-settle="${b.id}|won">W</button> <button class="small" data-settle="${b.id}|lost">L</button> <button class="small" data-settle="${b.id}|void">V</button>` : `<button class="small" data-settle="${b.id}|open">↺</button>`} <button class="small" data-del="${b.id}">✕</button></div>
-    </div>`).join('') : '<div class="empty">Nothing logged yet. Use Log next to a runner.</div>';
+function render() {
+  const d = snap;
+  const asAt = d.data_as_at || d.last_update || d.generated_at;
+  const dataAge = Math.round((Date.now() - Date.parse(asAt)) / 60000);
+  $('#s-update').textContent = `prices updated ${dataAge <= 0 ? 'just now' : dataAge + ' min ago'}` + (dataAge > 6 ? ' · feed paused, may be stale' : '');
+  $('#s-update').className = dataAge > 6 ? 'neg' : '';
+  $('#s-model').textContent = d.racing_day ? new Date(d.racing_day + 'T12:00:00').toLocaleDateString('en-AU', {weekday: 'short', day: 'numeric', month: 'short'}) + ' · ' + d.meetings.map(m => m.venue).join(', ') : '';
+  $('#p-day').textContent = 'your local time';
+  $('#n-picks').textContent = d.suggestions.length ? `(${d.suggestions.length})` : '';
+  $('#sugs').innerHTML = d.suggestions.length ? d.suggestions.map(s => `<div class="pc"><div class="row1"><b>#${s.runner_number} ${esc(s.runner)}</b><span class="mono pos">+${Math.round(s.edge * 100)}%</span></div>
+      <div class="dim" style="font-size:13px">${esc(s.race_key)} · ${timeFmt(s.start_time)} · Betfair place $${(+s.odds).toFixed(2)} · ${bank ? '$' + (bank * s.stake_pct / 100).toFixed(2) : s.stake_pct + '% of bank'}</div></div>`).join('')
+    : '<div class="empty">None right now.</div>';
+  renderNext(); renderCard(); renderRunsheet(); renderFields(); renderBank();
+}
+function renderBank() {
+  $('#in-bank').value = bank || '';
+  $('#p-unit').textContent = bank ? `1 unit = $${(bank / 100).toFixed(2)}` : 'Set a bank to see stakes in dollars.';
 }
 
 // ---------- interactions ----------
 document.addEventListener('click', e => {
-  const t = e.target.closest('[data-toggle],[data-log],[data-settle],[data-del],[data-track]');
+  const t = e.target.closest('[data-toggle],[data-track],[data-goto]');
   if (!t) return;
-  if (t.dataset.toggle) { const k = t.dataset.toggle; manual.add(k); collapsed.has(k) ? collapsed.delete(k) : collapsed.add(k); render(); }
-  else if (t.dataset.track) { track = t.dataset.track; render(); }
-  else if (t.dataset.log) { const [k, n] = t.dataset.log.split('|'); openDlg(k, +n, t.dataset.sug ? JSON.parse(t.dataset.sug) : null); }
-  else if (t.dataset.settle) { const [id, st] = t.dataset.settle.split('|'); const b = ledger.bets.find(x => x.id === +id); if (b) { b.status = st; saveLedger(); renderLedger(); } }
-  else if (t.dataset.del) { const id = +t.dataset.del; ledger.bets = ledger.bets.filter(x => x.id !== id); saveLedger(); renderLedger(); }
+  if (t.dataset.toggle) { const k = t.dataset.toggle; const el = t.closest('.card'); manual.add(k); if (el.classList.contains('collapsed')) collapsed.delete(k); else collapsed.add(k); renderFields(); }
+  else if (t.dataset.track) { track = t.dataset.track; renderFields(); }
+  else if (t.dataset.goto) { const k = t.dataset.goto; manual.add(k); collapsed.delete(k); track = 'all'; $('#d-fields').open = true; renderFields();
+    const el = document.querySelector(`.card[data-key="${CSS.escape(k)}"]`); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
 });
-function openDlg(raceKey, number, sug) {
-  const race = snap.races.find(r => r.key === raceKey), r = race.runners.find(x => x.number === number);
-  const f = $('#dlg-form');
-  $('#dlg-title').textContent = `${r.name} — ${raceKey}`;
-  $('#f-type').value = sug ? sug.bet_type : 'win';
-  $('#f-odds').value = sug ? sug.odds : r.best_odds;
-  const bank = ledgerSummary().start;
-  $('#f-stake').value = sug && bank ? Math.max(5, Math.round(bank * sug.stake_pct / 100 / 5) * 5) : '';
-  $('#f-book').value = sug ? (sug.bookmaker || 'TAB') : (r.book || 'TAB');
-  $('#dlg-hint').textContent = `Rated ${pct(r.rated_prob)} ($${(r.rated_price || 0).toFixed(2)}) · edge ${(r.edge * 100).toFixed(0)}% at $${(r.best_odds || 0).toFixed(2)}` + (sug ? ` · scanner suggests ${sug.stake_pct}% of bankroll` : '');
-  f.dataset.race = raceKey; f.dataset.number = number; f.dataset.runner = r.name;
-  $('#dlg').showModal();
-}
-$('#dlg-cancel').onclick = () => $('#dlg').close();
-$('#dlg-form').onsubmit = e => {
-  const f = e.target;
-  ledger.bets.push({ id: Date.now(), race_key: f.dataset.race, runner: f.dataset.runner, runner_number: +f.dataset.number,
-    bet_type: $('#f-type').value, odds: +$('#f-odds').value, stake: +$('#f-stake').value, bookmaker: $('#f-book').value,
-    status: 'open', at: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) });
-  saveLedger(); renderLedger();
-};
 $('#btn-next').onclick = () => { const el = document.querySelector('.card.next'); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); };
-$('#btn-help').onclick = () => { const h = $('#help'); h.hidden = !h.hidden; $('#btn-help').setAttribute('aria-expanded', String(!h.hidden)); };
-if (window.innerWidth < 960) { $('#d-picks').open = true; $('#d-bets').open = false; }
-$('#btn-bankroll').onclick = () => { const v = +$('#in-bankroll').value; if (v > 0) { ledger.bankroll = v; saveLedger(); $('#in-bankroll').value = ''; renderLedger(); } };
+$('#btn-bank').onclick = () => { const v = parseFloat(String($('#in-bank').value).replace(/[^0-9.]/g, '')); bank = v > 0 ? v : 0; lsSet('units_bank', bank); if (snap) render(); };
 
 setInterval(() => {
   if (!snap) return;
@@ -455,6 +460,7 @@ setInterval(() => {
     const [jl, jc] = jumpLabel(race.start_time, race.status, race.runners.some(r => r.result));
     const j = el.querySelector('.jump'); j.textContent = jl; j.className = 'jump ' + jc;
   });
+  const c = $('#nx-clock'); if (c && c.dataset.t) { const m = minsTo(c.dataset.t); c.textContent = m >= 60 ? Math.floor(m / 60) + 'h ' + (m % 60) + 'm' : m >= 0 ? m + ' min' : 'running'; }
 }, 1000);
 load(); setInterval(load, POLL_MS);
 
