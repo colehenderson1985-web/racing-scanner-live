@@ -426,7 +426,6 @@ function renderFields() {
       const pk = picks.has(r.number) && !resulted ? ' <span class="badge value">PLACE PICK</span>' : '';
       return `<tr class="${r.scratched ? 'scr' : ''} ${pk ? 'value' : ''}">
         <td class="num">${r.number}</td><td>${res}${esc(r.name)}${pk}</td>
-        <td class="num">${r.barrier ?? '-'}</td><td>${esc(r.jockey || '')}</td><td class="num dim">${esc(r.form || '')}</td>
         ${cmpCells(r, flash, arrow, race.start_time && Date.parse(race.start_time) - Date.now() > 3 * 3600e3)}
         <td class="num dim">${r.scratched || r.place_q == null ? '–' : Math.round(r.place_q * 100) + '%'}</td></tr>`;
     }).join('');
@@ -435,7 +434,7 @@ function renderFields() {
         <span class="rn">R${race.number}</span><span class="title">${esc(race.meeting)}</span>
         <span class="meta">${esc(race.name || '')} · ${race.distance}m</span><span class="meta">${timeFmt(race.start_time)}</span>
         <span class="jump ${jc}">${jl}</span></div>
-      <div class="body"><div class="tbl"><table><thead><tr><th>#</th><th>Runner</th><th>Bar</th><th>Jockey</th><th>Form</th>
+      <div class="body"><div class="tbl"><table><thead><tr><th>#</th><th>Runner</th>
         <th style="text-align:right">TAB win</th><th style="text-align:right">BF win</th><th style="text-align:right" title="TAB price ÷ Betfair price − 1">Win ±</th><th style="text-align:right">TAB pl</th><th style="text-align:right">BF pl</th><th style="text-align:right" title="TAB place price ÷ Betfair place price − 1">Pl ±</th><th style="text-align:right">Place chance</th></tr></thead>
         <tbody>${rows}</tbody></table></div><div class="speed">${race.speed_map || ''}</div></div></div>`;
   }).join('') || '<div class="empty">No races in the snapshot yet.</div>';
