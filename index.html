@@ -172,6 +172,7 @@
   #d-fields[open] > summary .ch { border-bottom: 1px solid var(--line); }
   #d-fields:not([open]) > summary .ch { border-bottom: none; }
   #d-fields .card { margin: 10px; }
+  td.early { color: var(--muted); font-style: italic; }
 </style>
 </head>
 <body>
@@ -385,6 +386,25 @@ function renderRunsheet() {
   }).join('') || '<div class="empty">No races yet.</div>';
 }
 
+function cmpCells(r, flash, arrow, far) {
+  // TAB vs Betfair, win and place: prices and edge (TAB / Betfair - 1), gross of Betfair commission.
+  // Live Betfair price if fresh; otherwise an early one (up to 20 min old), shown greyed with "~" and never coloured.
+  const EARLY = 'Indicative Betfair price: race is hours away or the price is up to 20 min old, so the market is thin - for reading only';
+  const px = v => v ? '$' + (+v).toFixed(2) : '–';
+  const ok = v => v && v >= 1.15 ? v : null;   // a Betfair back under $1.15 is a placeholder bid, not a market
+  const bf = (live, early) => { live = ok(live); early = ok(early); if (live && !far) return `<td class="num">${px(live)}</td>`; const v = live || early; return v ? `<td class="num early" title="${EARLY}">~${px(v)}</td>` : '<td class="num dim">–</td>'; };
+  const ed = (a, live, early) => {
+    live = ok(live); early = ok(early);
+    const b = live || early;
+    if (!a || !b) return '<td class="num dim">–</td>';
+    const e = a / b - 1, txt = (e >= 0 ? '+' : '') + (e * 100).toFixed(0) + '%';
+    if (!live || far) return `<td class="num early" title="${EARLY}">~${txt}</td>`;
+    return `<td class="num ${e > 0 ? 'pos' : (e < -0.1 ? 'neg' : 'dim')}">${txt}</td>`;
+  };
+  if (r.scratched) return '<td class="num">—</td><td></td><td></td><td></td><td></td><td></td>';
+  return `<td class="num ${flash || ''}">${px(r.tab_odds)}${arrow || ''}</td>${bf(r.bf_mid, r.bf_mid_early)}${ed(r.tab_odds, r.bf_mid, r.bf_mid_early)}`
+       + `<td class="num">${px(r.tab_place)}</td>${bf(r.bf_place_back, r.bf_place_early)}${ed(r.tab_place, r.bf_place_back, r.bf_place_early)}`;
+}
 function renderFields() {
   const d = snap;
   $('#tracks').innerHTML = d.meetings.map(m => `<span><b>${esc(m.venue)}</b> ${esc(m.condition || '')}${m.rail ? ' · rail ' + esc(m.rail) : ''}${m.weather ? ' · ' + esc(m.weather) : ''}</span>`).join('');
@@ -407,9 +427,8 @@ function renderFields() {
       return `<tr class="${r.scratched ? 'scr' : ''} ${pk ? 'value' : ''}">
         <td class="num">${r.number}</td><td>${res}${esc(r.name)}${pk}</td>
         <td class="num">${r.barrier ?? '-'}</td><td>${esc(r.jockey || '')}</td><td class="num dim">${esc(r.form || '')}</td>
-        <td class="num ${flash}">${oddsCell(r)}${arrow}${spark(r.spark)}</td>
-        <td class="num dim">${r.scratched || r.place_q == null ? '–' : Math.round(r.place_q * 100) + '%'}</td>
-        <td class="num">${r.scratched || !r.bf_place_back ? '–' : '$' + (+r.bf_place_back).toFixed(2)}</td></tr>`;
+        ${cmpCells(r, flash, arrow, race.start_time && Date.parse(race.start_time) - Date.now() > 3 * 3600e3)}
+        <td class="num dim">${r.scratched || r.place_q == null ? '–' : Math.round(r.place_q * 100) + '%'}</td></tr>`;
     }).join('');
     return `<div class="card ${open ? '' : 'collapsed'} ${race.key === nextKey ? 'next' : ''}" data-key="${esc(race.key)}">
       <div class="head" data-toggle="${esc(race.key)}">
@@ -417,7 +436,7 @@ function renderFields() {
         <span class="meta">${esc(race.name || '')} · ${race.distance}m</span><span class="meta">${timeFmt(race.start_time)}</span>
         <span class="jump ${jc}">${jl}</span></div>
       <div class="body"><div class="tbl"><table><thead><tr><th>#</th><th>Runner</th><th>Bar</th><th>Jockey</th><th>Form</th>
-        <th style="text-align:right">Odds</th><th style="text-align:right">Place chance</th><th style="text-align:right">BF place</th></tr></thead>
+        <th style="text-align:right">TAB win</th><th style="text-align:right">BF win</th><th style="text-align:right" title="TAB price ÷ Betfair price − 1">Win ±</th><th style="text-align:right">TAB pl</th><th style="text-align:right">BF pl</th><th style="text-align:right" title="TAB place price ÷ Betfair place price − 1">Pl ±</th><th style="text-align:right">Place chance</th></tr></thead>
         <tbody>${rows}</tbody></table></div><div class="speed">${race.speed_map || ''}</div></div></div>`;
   }).join('') || '<div class="empty">No races in the snapshot yet.</div>';
 }
