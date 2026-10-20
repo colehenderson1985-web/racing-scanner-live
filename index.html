@@ -184,7 +184,7 @@
   </div>
   <div class="status" id="status-nfl" hidden></div>
 </header>
-<nav class="tabs" aria-label="Sport">
+<nav class="tabs" aria-label="Sport" style="display:none"><!-- NFL parked for later: remove display:none to bring the tab back -->
   <button id="tabbtn-racing" class="on" onclick="showTab('racing')">Racing</button>
   <button id="tabbtn-nfl" onclick="showTab('nfl')">NFL</button>
 </nav>
@@ -592,7 +592,7 @@ function nflRenderMulti() {
 }
 $('#nfl-only50').onchange = nflRender; $('#nfl-priced').onchange = nflRender; $('#nfl-game').onchange = nflRender;
 nflLoad();
-if (lsGet('scanner_tab', 'racing') === 'nfl') showTab('nfl');
+showTab('racing'); // NFL parked
 </script>
 </body>
 </html>
