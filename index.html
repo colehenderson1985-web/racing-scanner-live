@@ -184,12 +184,17 @@
   </div>
   <div class="status" id="status-nfl" hidden></div>
 </header>
-<nav class="tabs" aria-label="Sport" style="display:none"><!-- NFL parked for later: remove display:none to bring the tab back -->
+<nav class="tabs" aria-label="Sport">
   <button id="tabbtn-racing" class="on" onclick="showTab('racing')">Racing</button>
   <button id="tabbtn-nfl" onclick="showTab('nfl')">NFL</button>
 </nav>
 
 <main id="tab-racing">
+    <div class="card" id="best" style="grid-column:1 / -1;order:-2;margin:0">
+      <h3 class="ch">Best bets today <span class="dim" id="p-cardn"></span></h3>
+      <div class="note" style="padding-top:6px">Units out of 100 for the day. Fewer bets when prices don't support more.</div>
+      <div id="p-card"><div class="empty">The day's card appears once fields and prices are in.</div></div>
+    </div>
   <section class="col">
     <div class="card" id="p-next"><div class="empty">Loading…</div></div>
     <div class="card">
@@ -207,11 +212,6 @@
     </details>
   </section>
   <aside class="col">
-    <div class="card">
-      <h3 class="ch">Best bets today <span class="dim" id="p-cardn"></span></h3>
-      <div class="note" style="padding-top:6px">Units out of 100 for the day. Fewer bets when prices don't support more.</div>
-      <div id="p-card"><div class="empty">The day's card appears once fields and prices are in.</div></div>
-    </div>
     <div class="card">
       <h3 class="ch">Place (trial) <span class="dim" id="n-picks"></span></h3>
       <div class="note" style="padding-top:6px">These appear about an hour before each race, once Betfair's place market is up.</div>
@@ -592,7 +592,7 @@ function nflRenderMulti() {
 }
 $('#nfl-only50').onchange = nflRender; $('#nfl-priced').onchange = nflRender; $('#nfl-game').onchange = nflRender;
 nflLoad();
-showTab('racing'); // NFL parked
+if (lsGet('scanner_tab', 'racing') === 'nfl') showTab('nfl');
 </script>
 </body>
 </html>
