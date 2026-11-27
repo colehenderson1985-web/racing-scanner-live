@@ -213,11 +213,6 @@
   </section>
   <aside class="col">
     <div class="card">
-      <h3 class="ch">Place (trial) <span class="dim" id="n-picks"></span></h3>
-      <div class="note" style="padding-top:6px">These appear about an hour before each race, once Betfair's place market is up.</div>
-      <div id="sugs"></div>
-    </div>
-    <div class="card">
       <h3 class="ch">Your bank</h3>
       <div class="note" style="padding-top:6px">Saved on this phone only. Stakes above scale to it.</div>
       <div class="row" style="align-items:flex-end">
@@ -230,7 +225,6 @@
     <div class="card">
       <h3 class="ch">How to read this</h3>
       <div class="note" style="color:var(--fg)">
-        <p style="margin:0 0 8px"><b>Place (trial)</b> picks are place bets where Betfair's win and place markets disagree by 20% or more. The rule tested well on three years of results and is now on a live trial.</p>
         <p style="margin:0 0 8px"><b>Best bets</b> is the day's plan in units out of 100: take the bet only at the price shown or better.</p>
         <p style="margin:0">Straight win tips aren't shown: none of the win rules tested beat the market.</p>
       </div>
@@ -448,10 +442,6 @@ function render() {
   $('#s-update').className = dataAge > 6 ? 'neg' : '';
   $('#s-model').textContent = d.racing_day ? new Date(d.racing_day + 'T12:00:00').toLocaleDateString('en-AU', {weekday: 'short', day: 'numeric', month: 'short'}) + ' · ' + d.meetings.map(m => m.venue).join(', ') : '';
   $('#p-day').textContent = 'your local time';
-  $('#n-picks').textContent = d.suggestions.length ? `(${d.suggestions.length})` : '';
-  $('#sugs').innerHTML = d.suggestions.length ? d.suggestions.map(s => `<div class="pc"><div class="row1"><b>#${s.runner_number} ${esc(s.runner)}</b><span class="mono pos">+${Math.round(s.edge * 100)}%</span></div>
-      <div class="dim" style="font-size:13px">${esc(s.race_key)} · ${timeFmt(s.start_time)} · Betfair place $${(+s.odds).toFixed(2)} · ${bank ? '$' + (bank * s.stake_pct / 100).toFixed(2) : s.stake_pct + '% of bank'}</div></div>`).join('')
-    : '<div class="empty">None right now.</div>';
   renderNext(); renderCard(); renderRunsheet(); renderFields(); renderBank();
 }
 function renderBank() {
